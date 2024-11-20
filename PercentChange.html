@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSE Stock</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+        h1 {
+            color: #007bff; /* Attractive blue color for the dashboard name */
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.5em; /* Increase font size for emphasis */
+            text-shadow: 1px 1px 2px rgba(0, 123, 255, 0.5); /* Subtle shadow for depth */
+        }
+        h2 {
+            color: #344039;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .container {
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 30px;
+            background: white;
+            margin-top: 50px;
+        }
+        table {
+            margin-top: 20px;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        tfoot {
+            background-color: #e9ecef;
+        }
+        #avgMax, #avgMin, #avgClose {
+            font-weight: bold;
+            color: #757e77; /* Green color for average values */
+            font-size: 1.5em; /* Slightly larger font for emphasis */
+            text-align: center; /* Center-align the text */
+        }
+        .average-label {
+            font-weight: bold; /* Make the labels bold */
+            color: #343a40; /* Dark color for the labels */
+            font-size: 1.2em; /* Standard size for labels */
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>NSE Stock </h1>
+        <form id="analysisForm">
+            <div class="row">
+                <div class="col">
+                    <div class="form-group">
+                        <label for="symbol">Symbol</label>
+                        <select id="symbol" class="form-control">
+                            <!-- Symbols will be populated here -->
+                        </select>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="form-group">
+                        <label for="timeframe">Time Frame</label>
+                        <select id="timeframe" class="form-control">
+                            <option value="D">Daily</option>
+                            <option value="W">Weekly</option>
+                            <option value="M">Monthly</option>
+                            <option value="Y">Yearly</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="form-group">
+                        <label for="perchng">Percentage Change</label>
+                        <input type="number" id="perchng" class="form-control" value="-4">
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="form-group">
+                        <label for="lf">Look Forward (LF)</label>
+                        <input type="number" id="lf" class="form-control" value="7">
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="form-group">
+                        <label for="lb">Look Back (LB)</label>
+                        <input type="number" id="lb" class="form-control" value="100">
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary ms-auto d-block" onclick="this.classList.toggle('btn-dark')">Analyze</button>
+        </form>
+
+        <h2>Analysis Results</h2>
+        <div id="results" class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Open</th>
+                        <th>High</th>
+                        <th>Low</th>
+                        <th>Close</th>
+                        <th>Max (%)</th>
+                        <th>Min (%)</th>
+                        <th>Close (%)</th>
+                        <th>From_HL (%)</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                    <!-- Results will be populated here -->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5" class="average-label">Average Values</td>
+                        <td id="avgMax">N/A</td>
+                        <td id="avgMin">N/A</td>
+                        <td id="avgClose">N/A</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        function loadSymbols(timeframe) {
+            axios.get(`/symbols?timeframe=${timeframe}`)
+                .then(function(response) {
+                    const symbolDropdown = $('#symbol');
+                    symbolDropdown.empty(); // Clear previous options
+                    response.data.forEach(function(symbol) {
+                        symbolDropdown.append(new Option(symbol, symbol));
+                    });
+                })
+                .catch(function(error) {
+                    console.error("Error fetching symbols:", error);
+                });
+        }
+
+        $(document).ready(function() {
+            // Load symbols for the default timeframe on page load
+            loadSymbols('D');
+
+            $('#timeframe').on('change', function() {
+                const selectedTimeframe = $(this).val();
+                loadSymbols(selectedTimeframe); // Load symbols based on the selected timeframe
+            });
+
+            $('#analysisForm').on('submit', function(e) {
+                e.preventDefault();
+                const symbol = $('#symbol').val();
+                const timeframe = $('#timeframe').val();
+                const perchng = $('#perchng').val();
+                const lf = $('#lf').val();
+                const lb = $('#lb').val();
+
+                // Sending a POST request to the Flask API
+                axios.post('/analyze', {
+                    symbol: symbol,
+                    timeframe: timeframe,
+                    perchng: parseInt(perchng),
+                    lf: parseInt(lf),
+                    lb: parseInt(lb)
+                })
+                .then(function(response) {
+                    $('#resultsBody').empty(); // Clear previous results
+
+                    // Populate results table
+                    response.data.forEach(function(row, index) {
+                        if (index === response.data.length - 1) {
+                            // Last row is the averages
+                            $('#avgMax').text(row["Average Max (%)"] || 'N/A');
+                            $('#avgMin').text(row["Average Min (%)"] || 'N/A');
+                            $('#avgClose').text(row["Average Close (%)"] || 'N/A');
+                        } else {
+                            // Display data rows
+                            $('#resultsBody').append(`
+                                <tr>
+                                    <td>${row.Date || ''}</td>
+                                    <td>${row.Open || ''}</td>
+                                    <td>${row.High || ''}</td>
+                                    <td>${row.Low || ''}</td>
+                                    <td>${row.Close || ''}</td>
+                                    <td class="${row['Max (%)'] > 0 ? 'text-success' : 'text-danger'}">${row['Max (%)']}%</td>
+                                    <td class="${row['Min (%)'] > 0 ? 'text-success' : 'text-danger'}">${row['Min (%)']}%</td>
+                                    <td class="${row['Close (%)'] > 0 ? 'text-success' : 'text-danger'}">${row['Close (%)']}%</td>
+                                    <td class="${row['From_HL (%)'] > 0 ? 'text-success' : 'text-danger'}">${row['From_HL (%)']}%</td>
+                                </tr>
+                            `);
+                        }
+                    });
+                })
+                .catch(function(error) {
+                    console.error("Error during analysis:", error);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

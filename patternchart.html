@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Price Action Analysis</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css">
+</head>
+<body>
+    <section class="section">
+        <div class="container">
+            <h1 class="title has-text-centered">Stock Price Action Analysis for {{ SName }}</h1>
+
+            <form action="/" method="post" class="box">
+                <div class="field">
+                    <label class="label">Symbol Name</label>
+                    <div class="control">
+                        <input class="input" type="text" name="SName" value="{{ SName }}" placeholder="Enter Symbol (e.g., ABB)">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Select Date</label>
+                    <div class="control">
+                        <input class="input" type="date" name="selected_date" required>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="control">
+                        <button class="button is-primary" type="submit">Analyze</button>
+                    </div>
+                </div>
+            </form>
+
+            {% if error_message %}
+            <div class="notification is-danger">
+                {{ error_message }}
+            </div>
+            {% endif %}
+
+            <div class="box">
+                <h2 class="title is-4">Candlestick Chart</h2>
+                {% if candlestick_chart_html %}
+                <div>{{ candlestick_chart_html|safe }}</div>
+                {% else %}
+                <p>No data available to display the chart.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+</body>
+</html>
